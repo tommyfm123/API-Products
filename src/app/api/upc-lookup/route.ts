@@ -56,6 +56,7 @@ export async function GET(req: Request) {
             image: item.images?.[0] || null,
         });
     } catch (err) {
+        console.error(err); // ✅ usamos err para evitar error de ESLint
         return Response.json({ error: 'Error al consultar UPCItemDB' }, { status: 500 });
     }
 }
