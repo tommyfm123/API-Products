@@ -38,6 +38,12 @@ export default function UPCProductLookup() {
   return (
     <div className="max-w-md mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Buscar producto</h1>
+      <h3>Producto de prueba</h3>
+      <p>airpods pro: 195949704529</p>
+      <p>cuerdas: 749699121480</p>
+      <p>airpods 1: 888462858427</p>
+      <p>macbook: 1 9425204898 6</p>
+      <p>Libro: 9781781257654</p>
 
       {/* Buscar por UPC */}
       <form onSubmit={(e) => { e.preventDefault(); fetchProduct(upc, 'upc'); }} className="space-y-2">
