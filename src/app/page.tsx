@@ -45,7 +45,6 @@ export default function UPCProductLookup() {
       <p>airpods 1: 888462858427</p>
       <p>macbook: 1 9425204898 6</p>
       <p>Libro: 9781781257654</p>
-      <p>Clean Code: 9780132350884</p>
       <p>The Pragmatic Programmer: 9780135957059</p>
 
       {/* Buscar por UPC */}
