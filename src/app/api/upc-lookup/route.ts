@@ -1,24 +1,4 @@
-// src/app/api/upc-lookup/route.ts
-
-async function traducirLibre(text: string) {
-    if (!text) return '';
-    try {
-        const res = await fetch('https://libretranslate.com/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                q: text,
-                source: 'en',
-                target: 'es',
-                format: 'text',
-            }),
-        });
-        const data = await res.json();
-        return data.translatedText || '';
-    } catch {
-        return text; // si falla traducción, devuelvo el original
-    }
-}
+import { obtenerDescripcion } from '@/lib/getDescripcion'; // este archivo lo creás en el paso siguiente
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -34,12 +14,13 @@ export async function GET(req: Request) {
         });
 
         const contentType = res.headers.get('content-type');
+        const body = await res.text();
+
         if (!contentType?.includes('application/json')) {
-            const text = await res.text();
-            return Response.json({ error: 'Respuesta inválida de UPCItemDB', html: text }, { status: 500 });
+            return Response.json({ error: 'Respuesta inválida de UPCItemDB', html: body }, { status: 500 });
         }
 
-        const json = await res.json();
+        const json = JSON.parse(body);
 
         if (!json.items || json.items.length === 0) {
             return Response.json({ error: 'Producto no encontrado' }, { status: 404 });
@@ -47,16 +28,16 @@ export async function GET(req: Request) {
 
         const item = json.items[0];
 
-        const descripcionEsp = await traducirLibre(item.description || '');
+        const descripcion = await obtenerDescripcion(item.title, item.description);
 
         return Response.json({
             title: item.title,
             brand: item.brand,
-            description: descripcionEsp,
+            description: descripcion,
             image: item.images?.[0] || null,
         });
     } catch (err) {
-        console.error(err); // ✅ usamos err para evitar error de ESLint
+        console.error(err);
         return Response.json({ error: 'Error al consultar UPCItemDB' }, { status: 500 });
     }
 }

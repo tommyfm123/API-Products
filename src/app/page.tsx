@@ -1,4 +1,5 @@
 'use client';
+import 'dotenv/config'; // si usás fuera de Next.js
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -44,6 +45,8 @@ export default function UPCProductLookup() {
       <p>airpods 1: 888462858427</p>
       <p>macbook: 1 9425204898 6</p>
       <p>Libro: 9781781257654</p>
+      <p>Clean Code: 9780132350884</p>
+      <p>The Pragmatic Programmer: 9780135957059</p>
 
       {/* Buscar por UPC */}
       <form onSubmit={(e) => { e.preventDefault(); fetchProduct(upc, 'upc'); }} className="space-y-2">
