@@ -117,10 +117,10 @@ export default function Home() {
         )}
       </Modal>
 
-      {products.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border">
-            <thead className="bg-gray-100">
+      <div className="overflow-x-auto border rounded-md">
+        {products.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead className="bg-indigo-50 text-indigo-700">
               <tr>
                 <th className="border px-2 py-1">Nombre</th>
                 <th className="border px-2 py-1">Descripción</th>
@@ -137,9 +137,7 @@ export default function Home() {
                   <td className="border px-2 py-1">{p.precio}</td>
                   <td className="border px-2 py-1">{p.stock}</td>
                   <td className="border px-2 py-1 text-center">
-                    <DropdownMenu
-                      trigger={<span className="cursor-pointer">⋮</span>}
-                    >
+                    <DropdownMenu trigger={<span className="cursor-pointer">⋮</span>}>
                       <button className="block w-full text-left px-2 py-1 hover:bg-gray-100" onClick={() => editar(p)}>Editar</button>
                       <button className="block w-full text-left px-2 py-1 hover:bg-gray-100" onClick={() => eliminar(p.id)}>Eliminar</button>
                     </DropdownMenu>
@@ -148,8 +146,10 @@ export default function Home() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        ) : (
+          <div className="p-4 text-center text-gray-500">No se encontraron productos. Por favor, cargá productos.</div>
+        )}
+      </div>
     </div>
   );
 }
