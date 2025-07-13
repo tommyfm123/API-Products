@@ -1,185 +1,153 @@
 'use client';
-import 'dotenv/config'; // si usás fuera de Next.js
-
 import { useState } from 'react';
-import Image from 'next/image';
-import BarcodeScanner from '@/components/BarcodeScanner';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Textarea } from '@/components/ui/Textarea';
+import { Modal } from '@/components/ui/Modal';
+import { DropdownMenu } from '@/components/ui/DropdownMenu';
+import { Spinner } from '@/components/ui/Spinner';
 
-type Product = {
-  title: string;
-  brand: string;
-  description: string;
-  image: string | null;
+type ApiProduct = {
+  nombre: string;
+  imagen: string;
+  descripcion: string;
 };
 
-export default function UPCProductLookup() {
-  const [upc, setUpc] = useState('');
-  const [isbn, setIsbn] = useState('');
-  const [product, setProduct] = useState<Product | null>(null);
+interface Product extends ApiProduct {
+  id: string;
+  precio: string;
+  stock: string;
+}
+
+export default function Home() {
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scannedProducts, setScannedProducts] = useState<Product[]>([]);
+  const [apiProduct, setApiProduct] = useState<ApiProduct | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [precio, setPrecio] = useState('');
+  const [stock, setStock] = useState('');
 
-  const fetchProduct = async (code: string, type: 'upc' | 'isbn') => {
+  async function buscarProducto() {
+    if (!code) return;
     setLoading(true);
-    setError(null);
-    setProduct(null);
-
     try {
-      const res = await fetch(`/api/${type}-lookup?code=${code}`);
+      const res = await fetch(`/api/producto?code=${encodeURIComponent(code)}`);
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setProduct(data);
-      return data as Product;
+      setApiProduct(data);
+      setPrecio('');
+      setStock('');
+      setModalOpen(true);
     } catch (err) {
-      const error = err as Error;
-      setError(error.message);
-      return null;
+      console.error(err);
+      alert('Error al buscar');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleDetected = async (code: string) => {
-    const prod = await fetchProduct(code, 'upc');
-    if (prod) {
-      setScannedProducts((prev) => [...prev, prod]);
-    }
-    setScanning(false);
-  };
+  function agregarProducto() {
+    if (!apiProduct) return;
+    const nuevo: Product = {
+      id: crypto.randomUUID(),
+      nombre: apiProduct.nombre,
+      imagen: apiProduct.imagen,
+      descripcion: apiProduct.descripcion,
+      precio,
+      stock,
+    };
+    setProducts((prev) => [...prev, nuevo]);
+    setModalOpen(false);
+  }
 
-  const updateScanned = (idx: number, newProd: Product) => {
-    setScannedProducts((prev) => prev.map((p, i) => (i === idx ? newProd : p)));
-  };
+  function eliminar(id: string) {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  }
 
-  const deleteScanned = (idx: number) => {
-    setScannedProducts((prev) => prev.filter((_, i) => i !== idx));
-  };
+  function editar(prod: Product) {
+    setApiProduct({ nombre: prod.nombre, imagen: prod.imagen, descripcion: prod.descripcion });
+    setPrecio(prod.precio);
+    setStock(prod.stock);
+    eliminar(prod.id);
+    setModalOpen(true);
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Buscar producto</h1>
-      <h3>Producto de prueba</h3>
-      <p>airpods pro: 195949704529</p>
-      <p>cuerdas: 749699121480</p>
-      <p>airpods 1: 888462858427</p>
-      <p>macbook: 1 9425204898 6</p>
-      <p>Libro: 9781781257654</p>
-      <p>The Pragmatic Programmer: 9780135957059</p>
-
-      {/* Buscar por UPC */}
-      <form onSubmit={(e) => { e.preventDefault(); fetchProduct(upc, 'upc'); }} className="space-y-2">
-        <label className="block font-medium">Buscar por UPC</label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={upc}
-            onChange={(e) => setUpc(e.target.value)}
-            placeholder="Ej: 190198496807"
-            className="flex-1 border border-gray-300 rounded px-2 py-1"
-            required
-          />
-          <button type="submit" className="bg-black text-white px-4 py-1 rounded hover:bg-gray-800">
-            Buscar
-          </button>
-        </div>
-      </form>
-
-      <button
-        type="button"
-        onClick={() => setScanning(true)}
-        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
-      >
-        Escanear código
-      </button>
-
-      {scanning && (
-        <BarcodeScanner onDetected={handleDetected} onClose={() => setScanning(false)} />
-      )}
-
-      {/* Buscar por ISBN */}
-      <form onSubmit={(e) => { e.preventDefault(); fetchProduct(isbn, 'isbn'); }} className="space-y-2">
-        <label className="block font-medium">Buscar por ISBN (libros)</label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-            placeholder="Ej: 9783161484100"
-            className="flex-1 border border-gray-300 rounded px-2 py-1"
-            required
-          />
-          <button type="submit" className="bg-black text-white px-4 py-1 rounded hover:bg-gray-800">
-            Buscar
-          </button>
-        </div>
-      </form>
-
-      {/* Resultado */}
-      {loading && <p>Buscando...</p>}
-      {error && <p className="text-red-600">Error: {error}</p>}
-      {product && (
-        <div className="border rounded p-4 shadow">
-          <h2 className="text-xl font-semibold mb-2">{product.title}</h2>
-          {product.image && (
-            <div className="relative w-full h-64 mb-2 rounded overflow-hidden">
-              <Image
-                src={product.image}
-                alt={product.title}
-                fill
-                className="object-contain"
-              />
-            </div>
+      <h1 className="text-2xl font-bold">Buscar producto por código</h1>
+      <div className="flex gap-2">
+        <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="EAN o UPC" />
+        <Button onClick={buscarProducto} disabled={loading}>
+          {loading ? (
+            <span className="flex items-center gap-2"><Spinner /> Buscando...</span>
+          ) : (
+            'Buscar'
           )}
-          <p><strong>Marca:</strong> {product.brand}</p>
-          <p><strong>Descripción:</strong> {product.description || 'No disponible'}</p>
-        </div>
-      )}
+        </Button>
+      </div>
 
-      {scannedProducts.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Productos escaneados</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-1">Nombre</th>
-                  <th className="border px-2 py-1">Descripción</th>
-                  <th className="border px-2 py-1 w-20">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scannedProducts.map((p, i) => (
-                  <tr key={i} className="odd:bg-gray-50">
-                    <td className="border px-2 py-1">
-                      <input
-                        className="w-full border rounded-md px-2 py-1"
-                        value={p.title}
-                        onChange={(e) => updateScanned(i, { ...p, title: e.target.value })}
-                      />
-                    </td>
-                    <td className="border px-2 py-1">
-                      <input
-                        className="w-full border rounded-md px-2 py-1"
-                        value={p.description}
-                        onChange={(e) => updateScanned(i, { ...p, description: e.target.value })}
-                      />
-                    </td>
-                    <td className="border px-2 py-1 text-center">
-                      <button
-                        type="button"
-                        onClick={() => deleteScanned(i)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Borrar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+        {apiProduct && (
+          <div className="space-y-4">
+            <div>
+              <Label className="block mb-1">Nombre</Label>
+              <Input value={apiProduct.nombre} onChange={(e) => setApiProduct({ ...apiProduct, nombre: e.target.value })} />
+            </div>
+            {apiProduct.imagen && (
+              <img src={apiProduct.imagen} alt={apiProduct.nombre} className="w-full h-40 object-contain" />
+            )}
+            <div>
+              <Label className="block mb-1">Descripción</Label>
+              <Textarea rows={4} value={apiProduct.descripcion} onChange={(e) => setApiProduct({ ...apiProduct, descripcion: e.target.value })} />
+            </div>
+            <div>
+              <Label className="block mb-1">Precio por unidad</Label>
+              <Input value={precio} onChange={(e) => setPrecio(e.target.value)} />
+            </div>
+            <div>
+              <Label className="block mb-1">Stock</Label>
+              <Input value={stock} onChange={(e) => setStock(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button onClick={agregarProducto}>Agregar producto</Button>
+              <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
+            </div>
           </div>
+        )}
+      </Modal>
+
+      {products.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border px-2 py-1">Nombre</th>
+                <th className="border px-2 py-1">Descripción</th>
+                <th className="border px-2 py-1">Precio</th>
+                <th className="border px-2 py-1">Stock</th>
+                <th className="border px-2 py-1 w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="odd:bg-gray-50">
+                  <td className="border px-2 py-1">{p.nombre}</td>
+                  <td className="border px-2 py-1 whitespace-pre-wrap">{p.descripcion}</td>
+                  <td className="border px-2 py-1">{p.precio}</td>
+                  <td className="border px-2 py-1">{p.stock}</td>
+                  <td className="border px-2 py-1 text-center">
+                    <DropdownMenu
+                      trigger={<span className="cursor-pointer">⋮</span>}
+                    >
+                      <button className="block w-full text-left px-2 py-1 hover:bg-gray-100" onClick={() => editar(p)}>Editar</button>
+                      <button className="block w-full text-left px-2 py-1 hover:bg-gray-100" onClick={() => eliminar(p.id)}>Eliminar</button>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
